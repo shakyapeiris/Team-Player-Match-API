@@ -1,8 +1,9 @@
 # Actix Web + DynamoDB CRUD API
 
 A match-team-player API developed utilizing Actix Web and DynamoDB (Single table design pattern)
-
+<p align="center">
 <img src="./assets/DDB-API.jpg">
+</p>
 
 ## Queries
 - Get all teams

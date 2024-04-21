@@ -3,10 +3,10 @@ use crate::{
     utils::{item_to_value, item_to_vector, AppErrorType, AppResponse, AppState},
 };
 use actix_web::{
-    body::{self, None}, delete, get,
+    get,
     http::StatusCode,
-    post, put,
-    web::{self, Data, Json},
+    post,
+    web::{self, Data, Json, Path},
 };
 use ulid::Ulid;
 
@@ -15,7 +15,10 @@ pub async fn retrieve(
     web_data: Data<AppState>,
     game_id: web::Path<String>,
 ) -> Result<Json<AppResponse<Game>>, AppErrorType> {
-    let result = web_data.ddb.get_match(format!("G#{}", game_id).to_string()).await?;
+    let result = web_data
+        .ddb
+        .get_match(format!("G#{}", game_id).to_string())
+        .await?;
     let res_data = Game {
         PK: item_to_value("PK", &result).expect("Invalid key").unwrap(),
         SK: item_to_value("SK", &result).expect("Invalid key").unwrap(),
@@ -44,8 +47,29 @@ pub async fn retrieve(
     )))
 }
 
-pub async fn list() {
+#[get("/{game_id}/score")]
+pub async fn retrieve_score(
+    app_state: web::Data<AppState>,
+    game_id: Path<String>,
+) -> Result<Json<AppResponse<Vec<Score>>>, AppErrorType> {
+    let result = app_state
+        .ddb
+        .get_match_scores(format!("G#{}", game_id).as_str())
+        .await?;
+    let mut res_vec = Vec::new();
 
+    for item in result {
+        res_vec.push(Score {
+            PK: item_to_value("PK", &item).expect("Invalid Key").unwrap(),
+            SK: item_to_value("SK", &item).expect("Invalid Key").unwrap(),
+            team: item_to_value("team", &item).expect("Invalid Key").unwrap(),
+            player: item_to_value("player", &item)
+                .expect("Invalid Key")
+                .unwrap(),
+        })
+    }
+
+    Ok(Json(AppResponse::new(res_vec, None, 200, true)))
 }
 
 #[post("/")]
@@ -76,29 +100,27 @@ pub async fn create(
 }
 
 #[post("/score")]
-pub async fn post_team_score(app_data: web::Data<AppState>, score_data: Json<Score>) -> Result<Json<AppResponse<Score>>, AppErrorType> {
+pub async fn post_team_score(
+    app_data: web::Data<AppState>,
+    score_data: Json<Score>,
+) -> Result<Json<AppResponse<Score>>, AppErrorType> {
     let conn = app_data.ddb.put_score(score_data.clone()).await;
     match conn {
-        Ok(()) => {
-            Ok(Json(AppResponse::new(
-                Score {
-                    PK: score_data.PK.clone(),
-                    SK: score_data.SK.clone(),
-                    player: score_data.player.clone(),
-                    team: score_data.team.clone()
-                },
-                Some("Score added successfully!".to_string()),
-                StatusCode::CREATED.as_u16() as i32,
-                true,
-            )))
-        },
-        Err(e) => {
-            Err(AppErrorType::from(e))
-        }
+        Ok(()) => Ok(Json(AppResponse::new(
+            Score {
+                PK: score_data.PK.clone(),
+                SK: score_data.SK.clone(),
+                player: score_data.player.clone(),
+                team: score_data.team.clone(),
+            },
+            Some("Score added successfully!".to_string()),
+            StatusCode::CREATED.as_u16() as i32,
+            true,
+        ))),
+        Err(e) => Err(AppErrorType::from(e)),
     }
-    
 }
 
-pub async fn update() {}
+// pub async fn update() {}
 
-pub async fn delete() {}
+// pub async fn delete() {}

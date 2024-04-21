@@ -101,6 +101,28 @@ impl DDB {
         Ok(())
     }
 
+    pub async fn get_player(
+        &self,
+        id: &str,
+    ) -> Result<Option<HashMap<String, AttributeValue>>, SdkError<QueryError>> {
+        let result = self
+            .client
+            .query()
+            .table_name(self.table_name.to_string())
+            .index_name("player-index")
+            .key_condition_expression("SK = :value")
+            .expression_attribute_values(":value", AttributeValue::S(id.to_string()))
+            .send()
+            .await;
+        match result {
+            Ok(op) => {
+                let a = &op.items.unwrap()[0];
+                Ok(Some(a.clone()))
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     pub async fn get_team_player(
         &self,
         team_id: &str,
@@ -171,7 +193,49 @@ impl DDB {
 
         match result {
             Ok(_) => Ok(()),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn get_match_scores(
+        &self,
+        match_id: &str,
+    ) -> Result<Vec<HashMap<String, AttributeValue>>, SdkError<QueryError>> {
+        let result = self
+            .client
+            .query()
+            .table_name(self.table_name.to_string())
+            .key_condition_expression("PK = :match_id begins_with(SK, :prefix)")
+            .expression_attribute_values(":match_id", AttributeValue::S(match_id.to_string()))
+            .expression_attribute_values(":prefix", AttributeValue::S("S".to_string()))
+            .send()
+            .await;
+
+        match result {
+            Ok(op) => {
+                let i = op.items.unwrap();
+                Ok(i)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn get_player_history(
+        &self,
+        player_id: String,
+    ) -> Result<Vec<HashMap<String, AttributeValue>>, SdkError<QueryError>> {
+        let result = self
+            .client
+            .query()
+            .table_name(self.table_name.to_string())
+            .index_name("")
+            .key_condition_expression("player = :player_id")
+            .expression_attribute_values(":player_id", AttributeValue::S(player_id))
+            .send()
+            .await;
+        match result {
+            Ok(op) => Ok(op.items.unwrap()),
+            Err(e) => Err(e),
         }
     }
 }

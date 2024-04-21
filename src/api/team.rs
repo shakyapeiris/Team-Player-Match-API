@@ -102,7 +102,7 @@ pub async fn delete(team_id: Path<String>) -> impl Responder {
     format!("Delte team {}", team_id)
 }
 
-#[get("/players/{team_id}")]
+#[get("/{team_id}/players")]
 pub async fn get_team_players(app_state: web::Data<AppState>,team_id: Path<String>) -> Result<Json<AppResponse<Vec<Player>>>, AppErrorType> {
     let result = app_state.ddb.get_team_player(format!("T#{}", team_id).as_str()).await;
     match result {

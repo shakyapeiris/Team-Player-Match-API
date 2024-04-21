@@ -32,12 +32,19 @@ async fn main() -> std::io::Result<()> {
                     .service(api::team::retrieve)
                     .service(api::team::get_team_players),
             )
-            .service(web::scope("/players").service(api::player::create))
+            .service(
+                web::scope("/players")
+                    .service(api::player::create)
+                    .service(api::player::retrieve)
+                    .service(api::player::retrieve_player_history),
+            )
             .service(
                 web::scope("/matches")
                     .service(api::game::create)
                     .service(api::game::retrieve)
-                    .service(api::game::post_team_score),
+                    .service(api::game::post_team_score)
+                    .service(api::game::retrieve_score),
+
             )
     })
     .workers(1)
